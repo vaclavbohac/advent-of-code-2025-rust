@@ -11,19 +11,19 @@ pub fn get_joltage(battery: &[u32], cells: u32) -> u64 {
 
     for j in (0..cells).rev() {
         let mut max = 0;
+        let mut max_i: usize = 0;
 
         let end = battery.len() - j as usize;
 
-        for i in start..end {
-            if battery[i] > max {
-                max = battery[i];
-                start = i + 1;
+        for (i, n) in battery[start..end].iter().enumerate() {
+            if *n > max {
+                max = *n;
+                max_i = i;
             }
         }
 
-        let n = 10u64.pow(j);
-
-        result += max as u64 * n;
+        result += max as u64 * 10u64.pow(j);
+        start = max_i + 1;
     }
 
     result
