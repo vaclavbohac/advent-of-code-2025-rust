@@ -18,7 +18,7 @@ pub fn get_joltage(battery: &[u32], cells: u32) -> u64 {
         for (i, n) in battery[start..end].iter().enumerate() {
             if *n > max {
                 max = *n;
-                max_i = i;
+                max_i = start + i;
             }
         }
 
