@@ -1,16 +1,16 @@
+mod grid;
 mod space_calculator;
+mod chars;
 
-use std::io::{self, BufRead};
+use crate::grid::Grid;
 use crate::space_calculator::count_accessible_paper_rolls;
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    let grid: Vec<Vec<char>> = stdin
-        .lock()
-        .lines()
-        .map(|l| l.unwrap().chars().collect())
-        .collect();
+    let grid = Grid::from_str(&input);
 
-    println!("{}", count_accessible_paper_rolls(grid))
+    println!("{}", count_accessible_paper_rolls(&grid))
 }
