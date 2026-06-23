@@ -1,26 +1,13 @@
-use crate::chars::DOT;
 use crate::grid::Grid;
-
-const MAX_ACCESSIBLE_NEIGHBOURS: u32 = 4;
 
 pub fn count_accessible_paper_rolls(grid: &Grid) -> u32 {
     let mut accessible_paper_rolls = 0;
 
-    for row_i in 0..grid.height() {
-        for cell_i in 0..grid.width() {
-            let cell = grid.get(cell_i, row_i);
-
-            if cell == Some(DOT) {
-                continue;
-            }
-
-            let paper_rolls = grid.get_neighbors(row_i, cell_i);
-
-            if paper_rolls < MAX_ACCESSIBLE_NEIGHBOURS {
-                accessible_paper_rolls += 1;
-            }
+    grid.for_each_paper(|row_i, column_i| {
+        if grid.is_accessible(row_i, column_i) {
+            accessible_paper_rolls += 1;
         }
-    }
+    });
 
     accessible_paper_rolls
 }
@@ -32,23 +19,13 @@ pub fn count_removable_paper_rolls(grid: &Grid) -> u32 {
     loop {
         let mut removable_paper_rolls: Vec<(usize, usize)> = Vec::new();
 
-        for row_i in 0..cloned.height() {
-            for cell_i in 0..cloned.width() {
-                let cell = cloned.get(cell_i, row_i);
-
-                if cell == Some(DOT) {
-                    continue;
-                }
-
-                let paper_rolls = cloned.get_neighbors(row_i, cell_i);
-
-                if paper_rolls >= MAX_ACCESSIBLE_NEIGHBOURS {
-                    continue;
-                }
-
-                removable_paper_rolls.push((row_i, cell_i))
+        cloned.for_each_paper(|row_i, column_i| {
+            if !cloned.is_accessible(row_i, column_i) {
+                return;
             }
-        }
+
+            removable_paper_rolls.push((row_i, column_i))
+        });
 
         if removable_paper_rolls.is_empty() {
             break;
