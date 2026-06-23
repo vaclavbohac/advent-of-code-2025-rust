@@ -3,7 +3,7 @@ mod space_calculator;
 mod chars;
 
 use crate::grid::Grid;
-use crate::space_calculator::count_accessible_paper_rolls;
+use crate::space_calculator::{count_accessible_paper_rolls, count_removable_paper_rolls};
 use std::io::{self, Read};
 
 fn main() {
@@ -12,5 +12,6 @@ fn main() {
 
     let grid = Grid::from_str(&input);
 
-    println!("{}", count_accessible_paper_rolls(&grid))
+    println!("{}", count_accessible_paper_rolls(&grid));
+    println!("{}", count_removable_paper_rolls(&grid))
 }

@@ -1,5 +1,6 @@
-use crate::chars::ROLL;
+use crate::chars::{DOT, ROLL};
 
+#[derive(Clone)]
 pub struct Grid {
     cells: Vec<u8>,
     height: usize,
@@ -23,6 +24,12 @@ impl Grid {
         Grid::new(height, width, cells)
     }
 
+    pub(crate) fn remove_paper_rolls(&mut self, paper_rolls: &[(usize, usize)]) {
+        paper_rolls.iter().for_each(|&(y, x)| {
+            self.set(x, y, DOT);
+        });
+    }
+
     pub fn width(&self) -> usize {
         self.width
     }
@@ -37,6 +44,14 @@ impl Grid {
         } else {
             Some(self.cells[y * self.width + x])
         }
+    }
+
+    pub fn set(&mut self, x: usize, y: usize, value: u8) {
+        if x >= self.width || y >= self.height {
+            return;
+        }
+
+        self.cells[y * self.width + x] = value;
     }
 
     pub fn get_neighbors(&self, row: usize, column: usize) -> u32 {
