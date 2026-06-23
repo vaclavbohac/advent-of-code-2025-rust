@@ -12,13 +12,13 @@ mod tests {
 
     #[test]
     fn it_returns_true_for_invalid_id() {
-        assert_eq!(true, is_invalid_id(111111));
-        assert_eq!(true, is_invalid_id(2121212121));
+        assert!(is_invalid_id(111111));
+        assert!(is_invalid_id(2121212121));
     }
 
     #[test]
     fn it_returns_false_for_valid_id() {
-        assert_eq!(false, is_invalid_id(101));
-        assert_eq!(false, is_invalid_id(2332));
+        assert!(!is_invalid_id(101));
+        assert!(!is_invalid_id(2332));
     }
 }

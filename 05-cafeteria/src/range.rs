@@ -38,6 +38,9 @@ mod tests {
     use super::*;
 
     #[test]
+    // The `1..=0` case deliberately exercises an inverted range; clippy would
+    // otherwise reject the literal as an empty range.
+    #[allow(clippy::reversed_empty_ranges)]
     fn test_range_size() {
         assert_eq!(range_size(&(0u64..=1)), 2);
         assert_eq!(range_size(&(0u64..=0)), 1);

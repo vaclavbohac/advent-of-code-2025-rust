@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  # Each day is an independent crate (there is no Cargo workspace), so we
+  # discover every directory that contains a Cargo.toml and fan out one job
+  # per day. New days are picked up automatically — no need to edit this file.
+  discover:
+    runs-on: ubuntu-latest
+    outputs:
+      days: ${{ steps.find.outputs.days }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: find
+        run: |
+          days=$(ls -d */Cargo.toml | sed 's#/Cargo.toml##' \
+            | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          echo "days=$days" >> "$GITHUB_OUTPUT"
+
+  check:
+    needs: discover
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        day: ${{ fromJSON(needs.discover.outputs.days) }}
+    defaults:
+      run:
+        working-directory: ${{ matrix.day }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ${{ matrix.day }}
+      - name: Check formatting
+        run: cargo fmt --check
+      - name: Lint
+        run: cargo clippy --all-targets -- -D warnings
+      - name: Run tests
+        run: cargo test

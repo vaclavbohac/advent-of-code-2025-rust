@@ -1,8 +1,8 @@
-mod rotation;
 mod dial;
+mod rotation;
 
-use std::io::{self, BufRead};
 use crate::dial::Dial;
+use std::io::{self, BufRead};
 
 fn main() {
     let stdin = io::stdin();

@@ -1,6 +1,6 @@
+mod chars;
 mod grid;
 mod space_calculator;
-mod chars;
 
 use crate::grid::Grid;
 use crate::space_calculator::{count_accessible_paper_rolls, count_removable_paper_rolls};

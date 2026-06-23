@@ -1,9 +1,9 @@
+mod advanced_validator;
 mod series_parser;
 mod simple_validator;
-mod advanced_validator;
 
-use crate::simple_validator::is_invalid_id as is_invalid_id_simple;
 use crate::advanced_validator::is_invalid_id as is_invalid_id_advanced;
+use crate::simple_validator::is_invalid_id as is_invalid_id_simple;
 use series_parser::parse_series;
 use std::io::{self, BufRead};
 

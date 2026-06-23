@@ -1,7 +1,7 @@
 mod battery;
 
-use std::io::{self, BufRead};
 use crate::battery::{get_joltage, parse_battery};
+use std::io::{self, BufRead};
 
 fn main() {
     let stdin = io::stdin();
