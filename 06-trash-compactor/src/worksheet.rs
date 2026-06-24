@@ -1,3 +1,5 @@
+use std::mem::take;
+
 #[derive(Debug, PartialEq)]
 pub struct Worksheet {
     numbers: Vec<Vec<u64>>,
@@ -41,12 +43,10 @@ pub enum Operation {
 }
 
 fn parse_operation(token: &str) -> Operation {
-    if token == "+" {
-        Operation::Plus
-    } else if token == "*" {
-        Operation::Multiply
-    } else {
-        panic!("Unknown operation: {}", token);
+    match token {
+        "+" => Operation::Plus,
+        "*" => Operation::Multiply,
+        _ => panic!("Unknown operation: {}", token),
     }
 }
 
@@ -54,16 +54,19 @@ pub fn parse_worksheet(input: &str) -> Worksheet {
     let mut worksheet_numbers: Vec<Vec<u64>> = Vec::new();
     let mut worksheet_operations: Vec<Operation> = Vec::new();
 
+    let mut rows: Vec<&str> = input.lines().collect();
+    rows.pop();
+
     for (operation, (from, to)) in seek_boundaries(input) {
         let mut numbers: Vec<u64> = Vec::new();
 
-        for (line_i, line) in input.lines().enumerate() {
-            if line_i == input.lines().count() - 1 {
-                continue;
-            }
-
-            let s = line[from..=to.min(line.len() - 1)].trim();
-            numbers.push(s.parse::<u64>().unwrap());
+        for row in rows.iter() {
+            numbers.push(
+                row[from..=to.min(row.len() - 1)]
+                    .trim()
+                    .parse::<u64>()
+                    .unwrap(),
+            );
         }
 
         worksheet_numbers.push(numbers);
@@ -88,16 +91,17 @@ fn seek_boundaries(input: &str) -> Vec<(Operation, (usize, usize))> {
     for (i, cell) in last_line.bytes().enumerate() {
         if cell == b' ' {
             continue;
+        }
+
+        let op = parse_operation(&last_line[i..=i]);
+        if current_operation.is_none() {
+            current_operation = Some(op);
+            current_index_start = i;
         } else {
-            let op = parse_operation(&last_line[i..=i]);
-            if current_operation.is_none() {
-                current_operation = Some(op);
-                current_index_start = i;
-            } else {
-                vec.push((current_operation.unwrap(), (current_index_start, i - 2)));
-                current_operation = Some(op);
-                current_index_start = i;
-            }
+            // i - 2 is to skip the whitespace between the boxes of numbers
+            vec.push((current_operation.unwrap(), (current_index_start, i - 2)));
+            current_operation = Some(op);
+            current_index_start = i;
         }
     }
 
@@ -109,40 +113,32 @@ fn seek_boundaries(input: &str) -> Vec<(Operation, (usize, usize))> {
     vec
 }
 
-pub fn parse_worksheet_horizontally(input: &str) -> Worksheet {
+pub fn parse_worksheet_vertically(input: &str) -> Worksheet {
     let mut worksheet_numbers: Vec<Vec<u64>> = Vec::new();
     let mut worksheet_operations: Vec<Operation> = Vec::new();
+
+    let mut rows: Vec<&str> = input.lines().collect();
+    rows.pop();
 
     for (operation, (from, to)) in seek_boundaries(input) {
         worksheet_operations.push(operation);
 
         let mut numbers: Vec<u64> = Vec::new();
-        let range = from..=to;
-
         let mut n: Vec<u8> = Vec::new();
 
-        for column_i in range.rev() {
-            for (line_i, line) in input.lines().enumerate() {
-                if line_i == input.lines().count() - 1 {
+        for column_i in (from..=to).rev() {
+            for row in rows.iter() {
+                let Some(&byte) = row.as_bytes().get(column_i) else {
                     continue;
-                }
+                };
 
-                let bytes = line.as_bytes();
-                if bytes.len() <= column_i {
-                    continue;
-                } else {
-                    if bytes[column_i] == b' ' {
-                        continue;
-                    }
-
-                    n.push(bytes[column_i]);
+                if byte != b' ' {
+                    n.push(byte);
                 }
             }
 
-            let s = String::from_utf8(n.to_vec()).unwrap();
-            let number = s.parse::<u64>().unwrap();
-            numbers.push(number);
-            n = Vec::new();
+            let s = String::from_utf8(take(&mut n)).unwrap();
+            numbers.push(s.parse::<u64>().unwrap());
         }
 
         worksheet_numbers.push(numbers);
@@ -154,7 +150,7 @@ pub fn parse_worksheet_horizontally(input: &str) -> Worksheet {
 #[cfg(test)]
 mod tests {
     use crate::worksheet::{
-        Operation, Worksheet, parse_worksheet, parse_worksheet_horizontally, seek_boundaries,
+        Operation, Worksheet, parse_worksheet, parse_worksheet_vertically, seek_boundaries,
     };
 
     #[test]
@@ -192,7 +188,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_worksheet_horizontally() {
+    fn test_parse_worksheet_vertically() {
         let input = include_str!("../resources/sample-input.txt");
 
         let expected_numbers = vec![
@@ -211,7 +207,7 @@ mod tests {
 
         let expected_worksheet = Worksheet::new(expected_numbers, expected_operations);
 
-        let worksheet = parse_worksheet_horizontally(input);
+        let worksheet = parse_worksheet_vertically(input);
 
         assert_eq!(expected_worksheet, worksheet);
     }

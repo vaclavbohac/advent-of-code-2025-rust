@@ -1,4 +1,4 @@
-use crate::worksheet::{parse_worksheet, parse_worksheet_horizontally};
+use crate::worksheet::{parse_worksheet, parse_worksheet_vertically};
 use std::io;
 use std::io::Read;
 
@@ -9,5 +9,5 @@ fn main() {
     io::stdin().read_to_string(&mut input).unwrap();
 
     println!("{}", parse_worksheet(&input).calculate());
-    println!("{}", parse_worksheet_horizontally(&input).calculate());
+    println!("{}", parse_worksheet_vertically(&input).calculate());
 }
