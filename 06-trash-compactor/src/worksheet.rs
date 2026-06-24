@@ -6,6 +6,8 @@ pub struct Worksheet {
 
 impl Worksheet {
     pub fn new(numbers: Vec<Vec<u64>>, operations: Vec<Operation>) -> Self {
+        assert_eq!(numbers.len(), operations.len());
+
         Worksheet {
             numbers,
             operations,
@@ -13,54 +15,34 @@ impl Worksheet {
     }
 
     pub fn calculate(&self) -> u64 {
-        let mut sum: u64 = 0;
-
-        for (column, operation) in self.operations.iter().enumerate() {
-            let result = match operation {
+        self.operations
+            .iter()
+            .enumerate()
+            .map(|(column, operation)| match operation {
                 Operation::Plus => self.addition(column),
                 Operation::Multiply => self.multiplication(column),
-                Operation::Minus => 0,
-                Operation::Divide => 0,
-            };
-
-            sum += result;
-        }
-
-        sum
+            })
+            .sum()
     }
 
     fn multiplication(&self, column: usize) -> u64 {
-        let mut result: u64 = 1;
-        for row in &self.numbers {
-            result *= row[column];
-        }
-        result
+        self.numbers[column].iter().product()
     }
 
     fn addition(&self, column: usize) -> u64 {
-        let mut result: u64 = 0;
-        for row in &self.numbers {
-            result += row[column];
-        }
-        result
+        self.numbers[column].iter().sum()
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Operation {
     Plus,
-    Minus,
     Multiply,
-    Divide,
 }
 
 fn parse_operation(token: &str) -> Operation {
     if token == "+" {
         Operation::Plus
-    } else if token == "-" {
-        Operation::Minus
-    } else if token == "/" {
-        Operation::Divide
     } else if token == "*" {
         Operation::Multiply
     } else {
@@ -72,28 +54,98 @@ pub fn parse_worksheet(input: &str) -> Worksheet {
     let mut worksheet_numbers: Vec<Vec<u64>> = Vec::new();
     let mut worksheet_operations: Vec<Operation> = Vec::new();
 
-    for line in input.lines() {
-        let tokens = line.trim().split(' ').collect::<Vec<&str>>();
-
+    for (operation, (from, to)) in seek_boundaries(input) {
         let mut numbers: Vec<u64> = Vec::new();
-        for token in tokens {
-            if token.is_empty() {
+
+        for (line_i, line) in input.lines().enumerate() {
+            if line_i == input.lines().count() - 1 {
                 continue;
             }
 
-            let result = token.parse::<u64>();
-            match result {
-                Ok(n) => numbers.push(n),
-                Err(_) => {
-                    let op = parse_operation(token);
-                    worksheet_operations.push(op);
-                }
-            }
+            let s = line[from..=to.min(line.len() - 1)].trim();
+            numbers.push(s.parse::<u64>().unwrap());
         }
 
-        if !numbers.is_empty() {
-            worksheet_numbers.push(numbers)
+        worksheet_numbers.push(numbers);
+        worksheet_operations.push(operation);
+    }
+
+    Worksheet::new(worksheet_numbers, worksheet_operations)
+}
+
+fn seek_boundaries(input: &str) -> Vec<(Operation, (usize, usize))> {
+    let Some(last_line) = input.lines().last() else {
+        return vec![];
+    };
+
+    let max_length = input.lines().max_by_key(|l| l.len()).unwrap().len();
+
+    let mut vec: Vec<(Operation, (usize, usize))> = Vec::new();
+
+    let mut current_operation: Option<Operation> = None;
+    let mut current_index_start: usize = 0;
+
+    for (i, cell) in last_line.bytes().enumerate() {
+        if cell == b' ' {
+            continue;
+        } else {
+            let op = parse_operation(&last_line[i..=i]);
+            if current_operation.is_none() {
+                current_operation = Some(op);
+                current_index_start = i;
+            } else {
+                vec.push((current_operation.unwrap(), (current_index_start, i - 2)));
+                current_operation = Some(op);
+                current_index_start = i;
+            }
         }
+    }
+
+    vec.push((
+        current_operation.unwrap(),
+        (current_index_start, max_length - 1),
+    ));
+
+    vec
+}
+
+pub fn parse_worksheet_horizontally(input: &str) -> Worksheet {
+    let mut worksheet_numbers: Vec<Vec<u64>> = Vec::new();
+    let mut worksheet_operations: Vec<Operation> = Vec::new();
+
+    for (operation, (from, to)) in seek_boundaries(input) {
+        worksheet_operations.push(operation);
+
+        let mut numbers: Vec<u64> = Vec::new();
+        let range = from..=to;
+
+        let mut n: Vec<u8> = Vec::new();
+
+        for column_i in range.rev() {
+            for (line_i, line) in input.lines().enumerate() {
+                if line_i == input.lines().count() - 1 {
+                    continue;
+                }
+
+                let bytes = line.as_bytes();
+                if bytes.len() <= column_i {
+                    continue;
+                } else {
+                    if bytes[column_i] == b' ' {
+                        continue;
+                    }
+
+                    n.push(bytes[column_i]);
+                }
+            }
+
+            let s = String::from_utf8(n.to_vec()).unwrap();
+            let number = s.parse::<u64>().unwrap();
+            numbers.push(number);
+            n = Vec::new();
+        }
+
+        worksheet_numbers.push(numbers);
     }
 
     Worksheet::new(worksheet_numbers, worksheet_operations)
@@ -101,16 +153,19 @@ pub fn parse_worksheet(input: &str) -> Worksheet {
 
 #[cfg(test)]
 mod tests {
-    use crate::worksheet::{Operation, Worksheet, parse_worksheet};
+    use crate::worksheet::{
+        Operation, Worksheet, parse_worksheet, parse_worksheet_horizontally, seek_boundaries,
+    };
 
     #[test]
     fn test_parse_worksheet() {
         let input = include_str!("../resources/sample-input.txt");
 
         let expected_numbers = vec![
-            vec![123, 328, 51, 64],
-            vec![45, 64, 387, 23],
-            vec![6, 98, 215, 314],
+            vec![123, 45, 6],
+            vec![328, 64, 98],
+            vec![51, 387, 215],
+            vec![64, 23, 314],
         ];
 
         let expected_operations = vec![
@@ -134,5 +189,44 @@ mod tests {
         let worksheet = parse_worksheet(input);
 
         assert_eq!(4277556, worksheet.calculate());
+    }
+
+    #[test]
+    fn test_parse_worksheet_horizontally() {
+        let input = include_str!("../resources/sample-input.txt");
+
+        let expected_numbers = vec![
+            vec![356, 24, 1],
+            vec![8, 248, 369],
+            vec![175, 581, 32],
+            vec![4, 431, 623],
+        ];
+
+        let expected_operations = vec![
+            Operation::Multiply,
+            Operation::Plus,
+            Operation::Multiply,
+            Operation::Plus,
+        ];
+
+        let expected_worksheet = Worksheet::new(expected_numbers, expected_operations);
+
+        let worksheet = parse_worksheet_horizontally(input);
+
+        assert_eq!(expected_worksheet, worksheet);
+    }
+
+    #[test]
+    fn test_seek_boundaries() {
+        let input = include_str!("../resources/sample-input.txt");
+
+        let expected = vec![
+            (Operation::Multiply, (0, 2)),
+            (Operation::Plus, (4, 6)),
+            (Operation::Multiply, (8, 10)),
+            (Operation::Plus, (12, 14)),
+        ];
+
+        assert_eq!(seek_boundaries(input), expected);
     }
 }
