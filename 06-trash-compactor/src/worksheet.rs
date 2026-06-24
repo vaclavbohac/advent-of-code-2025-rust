@@ -131,7 +131,7 @@ mod tests {
     fn test_worksheet_calculations() {
         let input = include_str!("../resources/sample-input.txt");
 
-        let worksheet = parse_worksheet(&input);
+        let worksheet = parse_worksheet(input);
 
         assert_eq!(4277556, worksheet.calculate());
     }
